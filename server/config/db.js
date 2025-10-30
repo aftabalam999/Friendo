@@ -6,14 +6,18 @@ dotenv.config();
 // MongoDB Connection Configuration
 const connectDB = async () => {
   try {
+    // Default connection options
     const options = {
       retryWrites: true,
       w: 'majority',
-      serverSelectionTimeoutMS: 30000,
-      socketTimeoutMS: 45000,
-      connectTimeoutMS: 30000,
-      maxPoolSize: 10,
-      minPoolSize: 2,
+      serverSelectionTimeoutMS: 60000,
+      socketTimeoutMS: 60000,
+      connectTimeoutMS: 60000,
+      maxPoolSize: 50,
+      minPoolSize: 5,
+      autoIndex: true,
+      maxConnecting: 10,
+      heartbeatFrequencyMS: 10000,
     };
 
     const conn = await mongoose.connect(process.env.MONGODB_URI, options);
