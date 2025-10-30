@@ -3,10 +3,17 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-// Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Initialize OpenAI client if API key is available
+let openai;
+try {
+  if (process.env.OPENAI_API_KEY) {
+    openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+  }
+} catch (error) {
+  console.log('OpenAI initialization skipped - API key not available');
+}
 
 // Generate AI caption and hashtags for video
 export const generateCaption = async (req, res) => {
