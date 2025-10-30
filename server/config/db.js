@@ -20,9 +20,14 @@ const connectDB = async () => {
       heartbeatFrequencyMS: 10000,
     };
 
+    // Set mongoose global options
+    mongoose.set('bufferCommands', true);
+    mongoose.set('bufferTimeoutMS', 60000);
+
     const conn = await mongoose.connect(process.env.MONGODB_URI, options);
 
     console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
+    console.log('📊 Database connection parameters configured');
     
     // Handle connection events
     mongoose.connection.on('error', err => {
