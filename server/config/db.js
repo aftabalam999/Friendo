@@ -7,12 +7,13 @@ dotenv.config();
 const connectDB = async () => {
   try {
     const options = {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
       retryWrites: true,
       w: 'majority',
-      serverSelectionTimeoutMS: 5000,
+      serverSelectionTimeoutMS: 30000,
       socketTimeoutMS: 45000,
+      connectTimeoutMS: 30000,
+      maxPoolSize: 10,
+      minPoolSize: 2,
     };
 
     const conn = await mongoose.connect(process.env.MONGODB_URI, options);
@@ -22,10 +23,27 @@ const connectDB = async () => {
     // Handle connection events
     mongoose.connection.on('error', err => {
       console.error('MongoDB connection error:', err);
+      setTimeout(() => {
+        console.log('Attempting to reconnect to MongoDB...');
+        connectDB();
+      }, 5000);
     });
 
     mongoose.connection.on('disconnected', () => {
       console.log('MongoDB disconnected. Attempting to reconnect...');
+      setTimeout(connectDB, 5000);
+    });
+    
+    // Handle process termination
+    process.on('SIGINT', async () => {
+      try {
+        await mongoose.connection.close();
+        console.log('MongoDB connection closed through app termination');
+        process.exit(0);
+      } catch (err) {
+        console.error('Error closing MongoDB connection:', err);
+        process.exit(1);
+      }
     });
 
     mongoose.connection.on('reconnected', () => {
