@@ -10,8 +10,9 @@ export const register = async (req, res) => {
   try {
     const { email, password, displayName } = req.body;
 
-    // Validation
+    // Input Validation
     if (!email || !password) {
+      console.log('❌ Registration failed: Missing email or password');
       return res.status(400).json({
         success: false,
         message: 'Email and password are required',
@@ -19,42 +20,73 @@ export const register = async (req, res) => {
     }
 
     if (password.length < 6) {
+      console.log('❌ Registration failed: Password too short');
       return res.status(400).json({
         success: false,
         message: 'Password must be at least 6 characters',
       });
     }
 
-    // Check if user already exists
-    const existingUser = await User.findOne({ email });
+    // Check existing user - with timeout handling
+    const existingUserPromise = User.findOne({ email }).maxTimeMS(15000);
+    const existingUser = await Promise.race([
+      existingUserPromise,
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Database operation timed out')), 15000)
+      )
+    ]);
+
     if (existingUser) {
+      console.log('❌ Registration failed: Email already exists');
       return res.status(409).json({
         success: false,
         message: 'User with this email already exists',
       });
     }
 
-    // Generate unique username from email
+    // Generate unique username with timeout handling
     const baseUsername = email.split('@')[0];
     let username = baseUsername;
-    let usernameExists = await User.findOne({ username });
     let counter = 1;
+    let maxAttempts = 5;
 
-    while (usernameExists) {
-      username = `${baseUsername}${counter}`;
-      usernameExists = await User.findOne({ username });
-      counter++;
+    while (maxAttempts > 0) {
+      try {
+        const usernameExists = await User.findOne({ username }).maxTimeMS(5000);
+        if (!usernameExists) break;
+        
+        username = `${baseUsername}${counter}`;
+        counter++;
+        maxAttempts--;
+      } catch (error) {
+        console.log('⚠️ Username check timed out, using fallback');
+        username = `${baseUsername}${Date.now().toString().slice(-4)}`;
+        break;
+      }
     }
 
-    // Create new user
-    const user = await User.create({
+    // Prepare user data
+    const userData = {
       email,
       password,
       displayName: displayName || username,
       username,
       bio: '',
       photoURL: `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName || username)}&background=random`,
-    });
+    };
+
+    // Create new user with timeout handling
+    const createUserPromise = User.create(userData);
+    const user = await Promise.race([
+      createUserPromise,
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('User creation timed out')), 20000)
+      )
+    ]);
+
+    if (!user) {
+      throw new Error('Failed to create user account');
+    }
 
     // Generate tokens
     const { accessToken, refreshToken } = generateTokens(user);
@@ -80,10 +112,39 @@ export const register = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Registration error:', error);
+
+    // Handle specific error types
+    if (error.message.includes('timed out')) {
+      return res.status(504).json({
+        success: false,
+        message: 'Registration timed out. Please try again.',
+        error: 'Database operation timed out'
+      });
+    }
+
+    if (error.code === 11000) {
+      return res.status(409).json({
+        success: false,
+        message: 'Username or email already exists',
+        error: 'Duplicate key error'
+      });
+    }
+
+    // Handle mongoose validation errors
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid input data',
+        error: messages.join(', ')
+      });
+    }
+
+    // Default error response
     return res.status(500).json({
       success: false,
-      message: 'Failed to register user',
-      error: error.message,
+      message: 'Failed to register user. Please try again later.',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
     });
   }
 };
