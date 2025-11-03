@@ -48,7 +48,7 @@ const Stories = () => {
   ]);
 
   return (
-    <div className="w-full bg-dark-800/50 backdrop-blur-sm border-b border-white/10 py-4 px-4">
+    <div className="w-full bg-dark-800/50 backdrop-blur-sm border-b border-white/10 py-2 px-4">
       <div className="flex space-x-4 overflow-x-auto scrollbar-hide">
         {stories.map((story) => (
           <motion.div
@@ -70,14 +70,14 @@ const Stories = () => {
               >
                 <div className="bg-dark-900 p-[3px] rounded-full">
                   {story.isAdd ? (
-                    <div className="w-16 h-16 rounded-full bg-dark-700 flex items-center justify-center">
-                      <FiPlus className="w-6 h-6 text-white" />
+                    <div className="w-12 h-12 rounded-full bg-dark-700 flex items-center justify-center">
+                      <FiPlus className="w-5 h-5 text-white" />
                     </div>
                   ) : (
                     <img
                       src={story.user.photoURL}
                       alt={story.user.displayName}
-                      className="w-16 h-16 rounded-full object-cover"
+                      className="w-12 h-12 rounded-full object-cover"
                     />
                   )}
                 </div>

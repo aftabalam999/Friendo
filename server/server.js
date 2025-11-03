@@ -54,6 +54,8 @@ app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies
 
 // Serve uploaded videos as static files
 app.use('/uploads/videos', express.static(path.join(__dirname, 'uploads/videos')));
+// Serve uploaded profile images as static files
+app.use('/uploads/profiles', express.static(path.join(__dirname, 'uploads/profiles')));
 
 // Request logging middleware
 app.use((req, res, next) => {

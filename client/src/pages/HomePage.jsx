@@ -50,7 +50,7 @@ const HomePage = () => {
       </div>
 
       {/* Video Feed Container - Vertical Snap Scroll with Phone Width */}
-      <div className="h-screen w-full flex justify-center">
+      <div className="h-screen w-full flex justify-center pt-20">
         <div className="video-container-vertical w-full max-w-md h-full overflow-y-scroll snap-y snap-mandatory scrollbar-hide pb-16">
           {videos.length === 0 ? (
             <div className="h-full flex items-center justify-center snap-start">

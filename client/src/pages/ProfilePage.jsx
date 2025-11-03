@@ -28,6 +28,7 @@ const ProfilePage = () => {
   });
   const [profileImageFile, setProfileImageFile] = useState(null);
   const [profileImagePreview, setProfileImagePreview] = useState('');
+  const [profileImageObjectUrl, setProfileImageObjectUrl] = useState(null);
   const [isVideoPlayerOpen, setIsVideoPlayerOpen] = useState(false);
   const [selectedVideoIndex, setSelectedVideoIndex] = useState(0);
 
@@ -42,13 +43,17 @@ const ProfilePage = () => {
 
   // Update editForm whenever user changes (for immediate UI updates)
   useEffect(() => {
-    if (user && user.photoURL) {
+    if (user) {
       setEditForm(prev => ({
         ...prev,
-        photoURL: user.photoURL,
+        photoURL: user.photoURL || prev.photoURL,
         displayName: user.displayName || prev.displayName,
       }));
-      setProfileImagePreview(user.photoURL);
+      
+      // Only update profile image preview if it's not already set to the user's photoURL
+      if (user.photoURL && profileImagePreview !== user.photoURL) {
+        setProfileImagePreview(user.photoURL);
+      }
     }
   }, [user?.photoURL, user?.displayName]);
 
@@ -129,14 +134,33 @@ const ProfilePage = () => {
     const file = e.target.files[0];
     if (file) {
       setProfileImageFile(file);
-      // Create preview URL
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setProfileImagePreview(reader.result);
-      };
-      reader.readAsDataURL(file);
+      // Use an object URL for a fast, reliable preview
+      try {
+        // Revoke previous object URL if present
+        if (profileImageObjectUrl) {
+          URL.revokeObjectURL(profileImageObjectUrl);
+        }
+        const objectUrl = URL.createObjectURL(file);
+        setProfileImagePreview(objectUrl);
+        setProfileImageObjectUrl(objectUrl);
+      } catch (err) {
+        console.error('Error creating object URL for preview:', err);
+      }
     }
   };
+
+  // Clean up object URL when the component unmounts or when a new one is created
+  useEffect(() => {
+    return () => {
+      if (profileImageObjectUrl) {
+        try {
+          URL.revokeObjectURL(profileImageObjectUrl);
+        } catch (e) {
+          // ignore
+        }
+      }
+    };
+  }, [profileImageObjectUrl]);
 
   // Handle profile update with clean error handling
   const handleEditProfile = async (e) => {
@@ -241,9 +265,9 @@ const ProfilePage = () => {
           <div className="flex flex-col md:flex-row items-center md:items-start space-y-4 md:space-y-0 md:space-x-6">
             {/* Profile Picture */}
             <motion.img
-              key={`${editForm.photoURL}-${Date.now()}`}
+              key={profileImagePreview || editForm.photoURL || user.photoURL || '/default-avatar.png'}
               whileHover={{ scale: 1.05 }}
-              src={editForm.photoURL ? `${editForm.photoURL}?t=${Date.now()}` : user.photoURL ? `${user.photoURL}?t=${Date.now()}` : '/default-avatar.png'}
+              src={profileImagePreview || editForm.photoURL || user.photoURL || '/default-avatar.png'}
               alt={editForm.displayName || user.displayName}
               className="w-32 h-32 rounded-full border-4 border-primary shadow-lg object-cover"
               onError={(e) => {
