@@ -53,7 +53,7 @@ app.use(express.json()); // Parse JSON bodies
 app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies
 
 // Serve uploaded videos as static files
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads/videos', express.static(path.join(__dirname, 'uploads/videos')));
 
 // Request logging middleware
 app.use((req, res, next) => {
@@ -192,17 +192,8 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Handle reconnection
-  socket.on('reconnect', () => {
-    console.log('Socket reconnected:', socket.id);
-    if (socket.userId) {
-      onlineUsers.set(socket.userId, socket.id);
-      io.emit('user:status', { 
-        userId: socket.userId, 
-        online: true 
-      });
-    }
-  });
+  // Note: the 'reconnect' event is a client-side event and is not reliably emitted on the server.
+  // Server relies on 'connect' and 'disconnect' events plus client reconnection logic.
 });
 
 // Make io accessible in routes
@@ -219,7 +210,7 @@ app.use((err, req, res, next) => {
 });
 
 // Start server
-const PORT = process.env.PORT || 5001;
+const PORT = process.env.PORT || 5002;
 
 httpServer.listen(PORT, () => {
   console.log('');

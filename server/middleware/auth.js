@@ -17,23 +17,22 @@ export const verifyToken = async (req, res, next) => {
       });
     }
 
-    // Check if it's a Bearer token
-    if (!authHeader.startsWith('Bearer ')) {
+    // Parse Authorization header robustly: "Bearer <token>" (case-insensitive)
+    const parts = authHeader.split(' ');
+    if (parts.length !== 2 || !/^Bearer$/i.test(parts[0])) {
       console.error('❌ Invalid authorization format');
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Invalid authorization format. Use: Bearer <token>' 
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid authorization format. Use: Bearer <token>'
       });
     }
 
-    // Extract token
-    const token = authHeader.split('Bearer ')[1];
-    
+    const token = parts[1];
     if (!token) {
-      console.error('❌ No token found after Bearer');
-      return res.status(401).json({ 
-        success: false, 
-        message: 'No token provided' 
+      console.error('❌ No token provided in Authorization header');
+      return res.status(401).json({
+        success: false,
+        message: 'No token provided'
       });
     }
 
@@ -68,15 +67,21 @@ export const optionalAuth = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
     
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      const token = authHeader.split('Bearer ')[1];
-      const decoded = verifyJWT(token);
-      
-      req.user = {
-        id: decoded.id,
-        email: decoded.email,
-        username: decoded.username,
-      };
+    if (authHeader) {
+      const parts = authHeader.split(' ');
+      if (parts.length === 2 && /^Bearer$/i.test(parts[0])) {
+        try {
+          const decoded = verifyJWT(parts[1]);
+          req.user = {
+            id: decoded.id,
+            email: decoded.email,
+            username: decoded.username,
+          };
+        } catch (err) {
+          // ignore optional auth errors
+          console.error('Optional auth error during token verification:', err.message);
+        }
+      }
     }
   } catch (error) {
     console.error('Optional auth error:', error);

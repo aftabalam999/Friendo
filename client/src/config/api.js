@@ -1,7 +1,7 @@
 // API Configuration
 // Base URL for backend API
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+// NOTE: default to server's port used by the backend (5002) to match server/server.js
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5002/api';
 
 export const API_ENDPOINTS = {
   // Video endpoints

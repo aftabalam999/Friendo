@@ -1,6 +1,12 @@
 import jwt from 'jsonwebtoken';
 
 // JWT Configuration
+// In production the JWT_SECRET must be provided via environment variables.
+if (!process.env.JWT_SECRET && process.env.NODE_ENV === 'production') {
+  console.error('FATAL: JWT_SECRET is not set in environment. Aborting startup.');
+  process.exit(1);
+}
+
 const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production';
 const JWT_EXPIRES_IN = '7d'; // Access token expires in 7 days
 const REFRESH_TOKEN_EXPIRES_IN = '30d'; // Refresh token expires in 30 days

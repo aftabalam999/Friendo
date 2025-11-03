@@ -6,6 +6,15 @@ dotenv.config();
 // MongoDB Connection Configuration
 const connectDB = async () => {
   try {
+    console.log('🔍 Checking MongoDB URI from environment...');
+    console.log('MONGODB_URI:', process.env.MONGODB_URI ? 'SET' : 'UNDEFINED');
+    
+    if (!process.env.MONGODB_URI) {
+      console.error('❌ MONGODB_URI is not defined in environment variables');
+      console.log('Available environment variables:', Object.keys(process.env));
+      throw new Error('MONGODB_URI is not defined');
+    }
+
     // Default connection options
     const options = {
       retryWrites: true,
@@ -24,6 +33,7 @@ const connectDB = async () => {
     mongoose.set('bufferCommands', true);
     mongoose.set('bufferTimeoutMS', 60000);
 
+    console.log('🔄 Attempting to connect to MongoDB...');
     const conn = await mongoose.connect(process.env.MONGODB_URI, options);
 
     console.log(`✅ MongoDB Connected: ${conn.connection.host}`);

@@ -12,17 +12,20 @@ import {
   deleteVideo,
 } from '../controllers/videoController.js';
 import { verifyToken, optionalAuth } from '../middleware/auth.js';
-import upload from '../config/upload.js';
+import { uploadMiddleware } from '../config/upload.js';
 
 const router = express.Router();
 
 // Video routes
-router.get('/', optionalAuth, getAllVideos); // Get all videos (optional auth for personalization)
-router.get('/trending', optionalAuth, getTrendingVideos); // Get trending videos
-router.get('/user/:userId', getUserVideos); // Get videos by user ID
-router.get('/:id', optionalAuth, getVideoById); // Get single video by ID
-router.post('/', verifyToken, upload.single('video'), uploadVideo); // Upload new video with file (requires auth)
-router.delete('/:id', verifyToken, deleteVideo); // Delete video (requires auth)
+router.get('/', optionalAuth, getAllVideos);
+router.get('/trending', optionalAuth, getTrendingVideos);
+router.get('/user/:userId', getUserVideos);
+router.get('/:id', optionalAuth, getVideoById);
+
+// Video upload route with improved error handling
+router.post('/', verifyToken, uploadMiddleware, uploadVideo);
+
+router.delete('/:id', verifyToken, deleteVideo);
 
 // Interaction routes
 router.post('/:id/like', verifyToken, likeVideo); // Like video (requires auth)

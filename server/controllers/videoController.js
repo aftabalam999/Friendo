@@ -222,7 +222,7 @@ export const likeVideo = async (req, res) => {
     }
 
     // Check if already liked
-    if (video.likedBy.includes(userId)) {
+    if (video.likedBy.includes(userId.toString())) {
       return res.status(400).json({
         success: false,
         message: 'Video already liked',
@@ -230,7 +230,7 @@ export const likeVideo = async (req, res) => {
     }
 
     // Add like
-    video.likedBy.push(userId);
+    video.likedBy.push(userId.toString());
     video.likes += 1;
     await video.save();
 
@@ -265,7 +265,7 @@ export const unlikeVideo = async (req, res) => {
     }
 
     // Check if not liked
-    if (!video.likedBy.includes(userId)) {
+    if (!video.likedBy.includes(userId.toString())) {
       return res.status(400).json({
         success: false,
         message: 'Video not liked yet',
@@ -273,7 +273,7 @@ export const unlikeVideo = async (req, res) => {
     }
 
     // Remove like
-    video.likedBy = video.likedBy.filter(id => id !== userId);
+    video.likedBy = video.likedBy.filter(id => id !== userId.toString());
     video.likes = Math.max(0, video.likes - 1);
     await video.save();
 
@@ -398,8 +398,8 @@ export const deleteVideo = async (req, res) => {
       });
     }
 
-    // Check if user owns the video
-    if (video.userId !== userId) {
+    // Check if user owns the video (normalize both sides to string)
+    if (String(video.userId) !== String(userId)) {
       return res.status(403).json({
         success: false,
         message: 'Unauthorized to delete this video',

@@ -37,13 +37,37 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
-// Configure multer
+// Configure multer with error handling
 const upload = multer({
   storage: storage,
   fileFilter: fileFilter,
   limits: {
     fileSize: 100 * 1024 * 1024, // 100MB max file size
-  },
-});
+  }
+}).single('video'); // Configure for single file upload with field name 'video'
+
+// Wrapper function for error handling
+export const uploadMiddleware = (req, res, next) => {
+  upload(req, res, (err) => {
+    if (err instanceof multer.MulterError) {
+      // A Multer error occurred during upload
+      console.error('Multer error:', err);
+      return res.status(400).json({
+        success: false,
+        message: err.code === 'LIMIT_FILE_SIZE' 
+          ? 'File is too large. Maximum size is 100MB'
+          : 'Error uploading file'
+      });
+    } else if (err) {
+      // An unknown error occurred
+      console.error('Upload error:', err);
+      return res.status(500).json({
+        success: false,
+        message: err.message || 'Error uploading file'
+      });
+    }
+    next();
+  });
+};
 
 export default upload;
