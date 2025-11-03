@@ -15,6 +15,11 @@ class SocketService {
 
     this.socket = io(SOCKET_URL, {
       transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+      forceNew: true,
+      timeout: 10000,
     });
 
     this.socket.on('connect', () => {

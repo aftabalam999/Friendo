@@ -29,9 +29,13 @@ const httpServer = createServer(app);
 // Initialize Socket.io
 const io = new Server(httpServer, {
   cors: {
-    origin: process.env.CLIENT_URL || 'http://localhost:3000',
+    origin: [process.env.CLIENT_URL, 'http://localhost:3000', 'https://friendo-nine.vercel.app'],
     credentials: true,
+    methods: ["GET", "POST"]
   },
+  transports: ['websocket', 'polling'],
+  pingTimeout: 60000,
+  pingInterval: 25000,
 });
 
 // Connect to MongoDB
@@ -103,6 +107,10 @@ const onlineUsers = new Map(); // Map<userId, socketId>
 io.on('connection', (socket) => {
   console.log('\u26a1 New socket connection:', socket.id);
 
+  // Send current online users to newly connected user
+  const onlineUsersList = Array.from(onlineUsers.keys());
+  socket.emit('users:online', onlineUsersList);
+
   // User comes online
   socket.on('user:online', (userId) => {
     console.log('\ud83d\udfe2 User online:', userId);
@@ -111,6 +119,13 @@ io.on('connection', (socket) => {
     
     // Broadcast to all connected users
     io.emit('user:status', { userId, online: true });
+    
+    // Send current user's online status to all users
+    socket.broadcast.emit('user:status', {
+      userId: userId,
+      online: true,
+      lastSeen: new Date()
+    });
   });
 
   // Send message
@@ -168,8 +183,24 @@ io.on('connection', (socket) => {
     
     if (socket.userId) {
       onlineUsers.delete(socket.userId);
-      // Broadcast offline status
-      io.emit('user:status', { userId: socket.userId, online: false });
+      // Broadcast offline status with last seen
+      io.emit('user:status', { 
+        userId: socket.userId, 
+        online: false,
+        lastSeen: new Date()
+      });
+    }
+  });
+
+  // Handle reconnection
+  socket.on('reconnect', () => {
+    console.log('Socket reconnected:', socket.id);
+    if (socket.userId) {
+      onlineUsers.set(socket.userId, socket.id);
+      io.emit('user:status', { 
+        userId: socket.userId, 
+        online: true 
+      });
     }
   });
 });
