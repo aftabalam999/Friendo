@@ -131,7 +131,9 @@ export const getCurrentUser = async () => {
     
     if (response.data.success) {
       const user = response.data.data;
+      // Store updated user data in localStorage
       localStorage.setItem(USER_KEY, JSON.stringify(user));
+      console.log('User data updated in localStorage:', user);
       return user;
     }
     

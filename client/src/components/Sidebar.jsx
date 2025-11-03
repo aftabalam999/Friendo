@@ -1,10 +1,17 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FiHome, FiTrendingUp, FiUser, FiPlusCircle, FiUsers, FiMessageCircle } from 'react-icons/fi';
+import { useAuth } from '../hooks/useAuth';
 
-const Sidebar = ({ user, onUploadClick }) => {
+const Sidebar = ({ onUploadClick }) => {
   const location = useLocation();
+  const { user } = useAuth();
+
+  // Debugging: Log when user data changes
+  useEffect(() => {
+    console.log('Sidebar user data updated:', user);
+  }, [user]);
 
   const navItems = [
     { path: '/', icon: FiHome, label: 'Home' },
@@ -72,14 +79,14 @@ const Sidebar = ({ user, onUploadClick }) => {
 
         {/* User Profile */}
         {user && (
-          <Link to="/profile" className="px-3" key={`sidebar-${user.photoURL}-${user.displayName}-${Date.now()}`}>
+          <Link to="/profile" className="px-3">
             <motion.div
-              whileHover={{ scale: 1.02 }}
+              key={`sidebar-${user.id}-${user.photoURL}`}
+              whileHover={{ scale: 1.05 }}
               className="flex items-center space-x-3 p-3 rounded-xl hover:bg-dark-700 transition"
             >
               <img
-                key={`avatar-${user.photoURL}-${Date.now()}`}
-                src={user.photoURL ? `${user.photoURL}?t=${Date.now()}` : '/default-avatar.png'}
+                src={user.photoURL || '/default-avatar.png'}
                 alt={user.displayName}
                 className="w-12 h-12 rounded-full border-2 border-primary object-cover"
                 onError={(e) => {

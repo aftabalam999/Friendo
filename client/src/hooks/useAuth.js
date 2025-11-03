@@ -15,8 +15,10 @@ export const useAuth = () => {
       try {
         const userData = await authService.getCurrentUser();
         if (userData) {
-          setUser(userData);
-          return userData;
+          // Create a new object reference to ensure React detects the change
+          const newUser = { ...userData };
+          setUser(newUser);
+          return newUser;
         }
       } catch (err) {
         console.error('Error refreshing user:', err);

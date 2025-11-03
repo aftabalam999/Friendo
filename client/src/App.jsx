@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
 import Navbar from './components/Navbar';
@@ -34,19 +34,10 @@ function App() {
   const { user, loading } = useAuth();
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-dark-900">
-        <div className="text-center">
-          <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-gradient-to-r from-primary via-accent to-secondary flex items-center justify-center animate-pulse">
-            <span className="text-4xl font-bold">F</span>
-          </div>
-          <FiLoader className="w-8 h-8 animate-spin text-primary mx-auto mb-2" />
-          <p className="text-gray-400">Loading Friendo...</p>
-        </div>
-      </div>
-    );
-  }
+  // Debugging: Log when user data changes
+  useEffect(() => {
+    console.log('App user data updated:', user);
+  }, [user]);
 
   return (
     <Router>

@@ -24,11 +24,9 @@ const ProfilePage = () => {
     gender: '',
     mobileNumber: '',
     dateOfBirth: '',
-    photoURL: '',
   });
   const [profileImageFile, setProfileImageFile] = useState(null);
   const [profileImagePreview, setProfileImagePreview] = useState('');
-  const [profileImageObjectUrl, setProfileImageObjectUrl] = useState(null);
   const [isVideoPlayerOpen, setIsVideoPlayerOpen] = useState(false);
   const [selectedVideoIndex, setSelectedVideoIndex] = useState(0);
 
@@ -36,54 +34,30 @@ const ProfilePage = () => {
     if (user) {
       fetchUserVideos();
       fetchLikedVideos();
-      // Fetch complete user data from backend
-      fetchUserData();
-    }
-  }, [user]);
-
-  // Update editForm whenever user changes (for immediate UI updates)
-  useEffect(() => {
-    if (user) {
-      setEditForm(prev => ({
-        ...prev,
-        photoURL: user.photoURL || prev.photoURL,
-        displayName: user.displayName || prev.displayName,
-      }));
-      
-      // Only update profile image preview if it's not already set to the user's photoURL
-      if (user.photoURL && profileImagePreview !== user.photoURL) {
-        setProfileImagePreview(user.photoURL);
-      }
-    }
-  }, [user?.photoURL, user?.displayName]);
-
-  const fetchUserData = async () => {
-    try {
-      const response = await userService.getUserProfile(user.id);
-      const userData = response.data || response;
-      setEditForm({
-        displayName: userData.displayName || user.displayName || '',
-        bio: userData.bio || '',
-        gender: userData.gender || '',
-        mobileNumber: userData.mobileNumber || '',
-        dateOfBirth: userData.dateOfBirth ? new Date(userData.dateOfBirth).toISOString().split('T')[0] : '',
-        photoURL: userData.photoURL || user.photoURL || '',
-      });
-      setProfileImagePreview(userData.photoURL || user.photoURL || '');
-    } catch (error) {
-      console.error('Error fetching user data:', error);
-      // Fallback to user data
+      // Initialize edit form with user data
       setEditForm({
         displayName: user.displayName || '',
         bio: '',
         gender: '',
         mobileNumber: '',
         dateOfBirth: '',
-        photoURL: user.photoURL || '',
       });
-      setProfileImagePreview(user.photoURL || '');
+      // Set profile image preview
+      setProfileImagePreview(user.photoURL || '/default-avatar.png');
     }
-  };
+  }, [user]);
+
+  // Update profile image preview when user data changes
+  useEffect(() => {
+    if (user && user.photoURL) {
+      setProfileImagePreview(user.photoURL);
+    }
+  }, [user?.photoURL]);
+
+  // Debugging: Log when user data changes
+  useEffect(() => {
+    console.log('ProfilePage user data updated:', user);
+  }, [user]);
 
   const fetchUserVideos = async () => {
     try {
@@ -134,48 +108,25 @@ const ProfilePage = () => {
     const file = e.target.files[0];
     if (file) {
       setProfileImageFile(file);
-      // Use an object URL for a fast, reliable preview
-      try {
-        // Revoke previous object URL if present
-        if (profileImageObjectUrl) {
-          URL.revokeObjectURL(profileImageObjectUrl);
-        }
-        const objectUrl = URL.createObjectURL(file);
-        setProfileImagePreview(objectUrl);
-        setProfileImageObjectUrl(objectUrl);
-      } catch (err) {
-        console.error('Error creating object URL for preview:', err);
-      }
+      // Create preview URL
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setProfileImagePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
-  // Clean up object URL when the component unmounts or when a new one is created
-  useEffect(() => {
-    return () => {
-      if (profileImageObjectUrl) {
-        try {
-          URL.revokeObjectURL(profileImageObjectUrl);
-        } catch (e) {
-          // ignore
-        }
-      }
-    };
-  }, [profileImageObjectUrl]);
-
-  // Handle profile update with clean error handling
+  // Handle profile update
   const handleEditProfile = async (e) => {
     e.preventDefault();
     setLoading(true);
     
-    console.log('🔄 Starting profile update...');
-    
     try {
-      let updatedPhotoURL = editForm.photoURL;
+      let updatedPhotoURL = user.photoURL;
       
-      // Step 1: Upload profile image if changed
+      // Upload profile image if changed
       if (profileImageFile) {
-        console.log('📸 Uploading new profile image...');
-        
         try {
           const imageFormData = new FormData();
           imageFormData.append('profileImage', profileImageFile);
@@ -184,19 +135,15 @@ const ProfilePage = () => {
           
           if (uploadResponse.success) {
             updatedPhotoURL = uploadResponse.data.photoURL;
-            console.log('✅ Profile image uploaded:', updatedPhotoURL);
             success('Profile image uploaded successfully!');
           }
         } catch (uploadError) {
-          console.error('❌ Image upload failed:', uploadError);
+          console.error('Image upload failed:', uploadError);
           showError(uploadError.response?.data?.message || 'Failed to upload image');
-          // Continue with profile update even if image upload fails
         }
       }
 
-      // Step 2: Update profile data
-      console.log('📝 Updating profile information...');
-      
+      // Update profile data
       const updateData = {
         displayName: editForm.displayName.trim(),
         bio: editForm.bio.trim(),
@@ -209,23 +156,48 @@ const ProfilePage = () => {
       const profileResponse = await userService.updateProfile(user.id, updateData);
       
       if (profileResponse.success) {
-        console.log('✅ Profile updated successfully');
         success('Profile updated successfully!');
         
-        // Step 3: Refresh user data
+        // Refresh user data to ensure all components update
         if (refreshUser) {
-          await refreshUser();
+          console.log('Refreshing user data...');
+          const updatedUser = await refreshUser();
+          console.log('User data refreshed:', updatedUser);
+          
+          // Also update the local user state in this component to ensure immediate update
+          if (updatedUser) {
+            // Update profile image preview to show the new image
+            if (updatedUser.photoURL) {
+              setProfileImagePreview(updatedUser.photoURL);
+            }
+          }
         }
         
-        await fetchUserData();
+        // Update local state to reflect changes immediately
+        setEditForm({
+          ...editForm,
+          displayName: updateData.displayName,
+          bio: updateData.bio,
+          gender: updateData.gender,
+          mobileNumber: updateData.mobileNumber,
+          dateOfBirth: updateData.dateOfBirth,
+        });
         
-        // Step 4: Reset and close modal
+        // Update profile image preview to show the new image (fallback)
+        if (updatedPhotoURL) {
+          setProfileImagePreview(updatedPhotoURL);
+        }
+        
+        // Reset and close modal
         setProfileImageFile(null);
         setIsEditModalOpen(false);
+        
+        // Re-fetch user videos to update any changes
+        fetchUserVideos();
       }
       
     } catch (error) {
-      console.error('❌ Profile update failed:', error);
+      console.error('Profile update failed:', error);
       const errorMessage = error.response?.data?.message || error.message || 'Failed to update profile';
       showError(errorMessage);
     } finally {
@@ -265,10 +237,10 @@ const ProfilePage = () => {
           <div className="flex flex-col md:flex-row items-center md:items-start space-y-4 md:space-y-0 md:space-x-6">
             {/* Profile Picture */}
             <motion.img
-              key={profileImagePreview || editForm.photoURL || user.photoURL || '/default-avatar.png'}
+              key={profileImagePreview}
               whileHover={{ scale: 1.05 }}
-              src={profileImagePreview || editForm.photoURL || user.photoURL || '/default-avatar.png'}
-              alt={editForm.displayName || user.displayName}
+              src={profileImagePreview || user.photoURL || '/default-avatar.png'}
+              alt={user.displayName}
               className="w-32 h-32 rounded-full border-4 border-primary shadow-lg object-cover"
               onError={(e) => {
                 e.target.onerror = null;
@@ -279,7 +251,7 @@ const ProfilePage = () => {
             {/* User Details */}
             <div className="flex-1 text-center md:text-left">
               <h1 className="text-3xl font-bold text-white mb-1">
-                {editForm.displayName || user.displayName || 'User'}
+                {user.displayName || 'User'}
               </h1>
               <p className="text-gray-400 mb-2">@{user.email?.split('@')[0]}</p>
               
@@ -577,9 +549,10 @@ const ProfilePage = () => {
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 bg-gradient-to-r from-primary via-accent to-secondary text-white py-3 rounded-xl font-semibold neon-glow"
+                    disabled={loading}
+                    className="flex-1 bg-gradient-to-r from-primary via-accent to-secondary text-white py-3 rounded-xl font-semibold neon-glow disabled:opacity-50"
                   >
-                    Save Changes
+                    {loading ? 'Saving...' : 'Save Changes'}
                   </button>
                 </div>
               </form>

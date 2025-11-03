@@ -29,7 +29,7 @@ const httpServer = createServer(app);
 // Initialize Socket.io
 const io = new Server(httpServer, {
   cors: {
-    origin: [process.env.CLIENT_URL, 'http://localhost:3000', 'https://friendo-nine.vercel.app'],
+    origin: [process.env.CLIENT_URL, 'http://localhost:3000', 'http://localhost:3001', 'https://friendo-nine.vercel.app'],
     credentials: true,
     methods: ["GET", "POST"]
   },
@@ -43,7 +43,7 @@ connectDB();
 
 // Middleware
 app.use(cors({
-  origin: ['https://friendo-nine.vercel.app', 'http://localhost:3000'],
+  origin: ['https://friendo-nine.vercel.app', 'http://localhost:3000', 'http://localhost:3001'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],

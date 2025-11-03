@@ -141,9 +141,14 @@ const VideoCard = ({ video, currentUser }) => {
           {/* User Info */}
           <div className="flex items-center space-x-3 mb-2">
             <img
+              key={video.user?.photoURL}
               src={video.user?.photoURL || '/default-avatar.png'}
               alt={video.user?.displayName}
               className="w-8 h-8 rounded-full border-2 border-white object-cover"
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = '/default-avatar.png';
+              }}
             />
             <div>
               <h3 className="font-semibold text-sm">@{video.user?.username || 'user'}</h3>
