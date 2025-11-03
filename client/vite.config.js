@@ -14,5 +14,8 @@ export default defineConfig({
       }
     }
   },
-  base: '/' // Ensure proper routing in Vercel
+  base: '/', // Ensure proper routing in Vercel
+  build: {
+    outDir: 'dist' // Specify output directory for Vercel deployment
+  }
 })
